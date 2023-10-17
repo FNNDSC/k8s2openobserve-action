@@ -1,0 +1,181 @@
+name: "Ship Kubernetes Logs to OpenObserve"
+description: "Use Vector to send Kubernetes Logs to OpenObserve"
+author: "FNNDSC"
+inputs:
+  openobserve_endpoint:
+    description: 'OpenObserve organization API endpoint e.g. https://api.openobserve.ai/api/default/'
+    required: true
+  openobserve_username:
+    description: 'Your OpenObserve username'
+    required: true
+  openobserve_password:
+    description: 'Key/Password for your OpenObserve username (must not contain ")'
+    required: true
+  openobserve_stream:
+    description: 'Name of log stream'
+    required: true
+  namespace:
+    description: 'Kubernetes namespace where to install Vector'
+    required: false
+    default: 'monitoring'
+  wait_until_ready:
+    description: 'Wait until Vector is ready'
+    required: false
+    default: ''
+
+branding:
+  color: "orange"
+  icon: "align-left"
+
+runs:
+  using: composite
+  steps:
+    - name: Add Helm repos
+      shell: bash
+      run: |
+        helm repo add vector https://helm.vector.dev
+        helm repo update vector
+    - name: Install Vector Agent (log collector)
+      shell: bash
+      run: |
+        values="$(mktemp --suffix .yaml)"
+        cat > "$values" << EOF
+        role: "Agent"
+        service:
+          enabled: false
+        customConfig:
+          data_dir: /vector-data-dir
+          api:
+            enabled: false
+          sources:
+            # https://vector.dev/docs/reference/configuration/sources/kubernetes_logs/
+            kubernetes_logs:
+              type: kubernetes_logs
+          # https://vector.dev/docs/reference/configuration/transforms/log_to_metric/#examples-sum
+          transforms:
+            kubernetes_logs_with_ghactions_metadata:
+              type: remap
+              inputs: [ "kubernetes_logs" ]
+              source: |
+                .github_job = "${{ github.job }}"
+                .github_repository = "${{ github.repository }}"
+                .github_event_name = "${{ github.event_name }}"
+                .github_event_path = "${{ github.event_path }}"
+                .github_run_id = "${{ github.run_id }}"
+                .github_run_number = "${{ github.run_number }}"
+                .github_run_attempt = "${{ github.run_attempt }}"
+                .github_workflow_ref = "${{ github.workflow_ref }}"
+          sinks:
+            # https://openobserve.ai/docs/ingestion/logs/vector/
+            openobserve-logs:
+              type: http
+              inputs: [ "kubernetes_logs_with_ghactions_metadata" ]
+              uri: "${{ inputs.openobserve_endpoint }}${{ inputs.openobserve_stream }}/_json"
+              method: post
+              auth:
+                strategy: basic
+                user: "${{ inputs.openobserve_username }}"
+                password: "${{ inputs.openobserve_password }}"
+              compression: gzip
+              encoding:
+                codec: json
+                timestamp_format: rfc3339
+              healthcheck:
+                enabled: false
+        EOF
+        helm install --create-namespace -n ${{ inputs.namespace }} -f "$values" vector-agent vector/vector
+    - name: Install Vector Aggregator (metrics)
+      shell: bash
+      run: |
+        values="$(mktemp --suffix .yaml)"
+        cat > "$values" << EOF
+        role: "Stateless-Aggregator"
+
+        service:
+          enabled: false
+
+        customConfig:
+          data_dir: /vector-data-dir
+          api:
+            enabled: false
+          sources:
+            cadvisor:
+              type: prometheus_scrape
+              auth:
+                strategy: bearer
+                token: PLACEHOLDER
+              endpoints: [ "https://placeholder/metrics/cadvisor" ]
+              tls:
+                verify_certificate: false
+
+          transforms:
+            cadvisor_with_ghactions_metadata:
+              type: remap
+
+          sinks:
+            openobserve-metrics:
+              type: prometheus_remote_write
+              inputs: [ "cadvisor_with_ghactions_metadata" ]
+              endpoint: "${url}prometheus/api/v1/write"
+              auth:
+                strategy: basic
+                user: "${username}"
+                password: "${password}"
+              healthcheck:
+                enabled: false
+        EOF
+        helm install -n ${{ inputs.namespace }} -f "$values" vector-aggregator vector/vector
+
+        # grant vector-aggregator API permissions
+        kubectl apply -f - << EOF
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata:
+          name: metrics-reader
+        rules:
+        - apiGroups: [""]
+          resources:
+          - nodes
+          - nodes/proxy
+          verbs:
+          - get
+          - watch
+          - list
+        ---
+
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        metadata:
+          name: metrics-reader
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: metrics-reader
+        subjects:
+        - kind: ServiceAccount
+          name: vector-aggregator
+          namespace: ${{ inputs.namespace }}
+        EOF
+
+        # replace placeholders with values
+        # https://github.com/vectordotdev/vector/issues/18857
+
+        function _get_cadvisor_endpoints () {
+          api='https://$\{KUBERNETES_SERVICE_HOST\}:$\{KUBERNETES_SERVICE_PORT_HTTPS\}'
+          printf '{'
+          for node in $(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'); do
+            printf "%s%s/api/v1/nodes/%s/proxy/metrics/cadvisor" "$leading_comma" "$api" "$node"
+            leading_comma=,
+          done
+          printf '}'
+        }
+
+        helm upgrade --reuse-values -n ${{ inputs.namespace }} vector-aggregator vector/vector \
+          --set customConfig.sources.cadvisor.auth.token="$(kubectl create token -n ${{ inputs.namespace }} --duration=24h vector-aggregator)" \
+          --set customConfig.sources.cadvisor.endpoints="$(_get_cadvisor_endpoints)"
+    - name: Wait for vector to be ready
+      shell: bash
+      if: inputs.wait_until_ready
+      run: |
+        kubectl rollout status --timeout=5m -n ${{ inputs.namespace }} daemonset/vector-agent
+        kubectl rollout status --timeout=5m -n ${{ inputs.namespace }} deployment/vector-aggregator

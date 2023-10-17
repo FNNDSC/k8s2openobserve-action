@@ -1,0 +1,57 @@
+name: test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start Kubernetes
+        run: kind create cluster
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Vector to upload Kubernetes logs to OpenObserve
+        uses: ./
+        with:
+          openobserve_endpoint: ${{ secrets.OPENOBSERVE_URL }}/api/default/
+          openobserve_username: ${{ secrets.OPENOBSERVE_USERNAME }}
+          openobserve_password: ${{ secrets.OPENOBSERVE_PASSWORD }}
+          openobserve_stream: k8s2openobserve-action
+          namespace: monitoring
+          wait_until_ready: true
+      - name: Create example pod
+        run: |
+          kubectl apply -f - << EOF
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: example-pod
+            labels:
+              app.kubernetes.io/name: example-pod
+          spec:
+            containers:
+            - name: my-container
+              image: busybox
+              command:
+              - sh
+              - -c
+              - |
+                echo "counting to 10"
+                seq 10
+                echo "taking a break..."
+                sleep 1
+                echo "counting down from 5 by 2"
+                seq 5 -2 1
+          EOF
+      - name: Wait for pod to finish
+        run: kubectl wait --for=condition=ready --timeout=300s pod/example-pod
+      - name: Delete pod
+        run: kubectl delete pod example-pod
+      - name: Shut down vector
+        run: kubectl delete namespace monitoring
+      - name: Delete cluster
+        run: kind delete cluster
