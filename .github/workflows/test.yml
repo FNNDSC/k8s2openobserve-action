@@ -51,7 +51,16 @@ jobs:
         run: kubectl wait --for=condition=ready --timeout=300s pod/example-pod
       - name: Delete pod
         run: kubectl delete pod example-pod
+      - name: Get Vector logs
+        run: |
+          for pod in $(kubectl get pod -o name -n monitoring); do
+            echo ">>>> $pod <<<<"
+            kubectl logs -n monitoring $pod
+          done
       - name: Shut down vector
-        run: kubectl delete namespace monitoring
+        run: |
+          helm uninstall -n monitoring vector-agent
+          helm uninstall -n monitoring vector-aggregator
+          kubectl delete namespace monitoring
       - name: Delete cluster
         run: kind delete cluster
