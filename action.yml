@@ -57,14 +57,14 @@ runs:
               type: remap
               inputs: [ "kubernetes_logs" ]
               source: |
-                .github_job = "${{ github.job }}"
-                .github_repository = "${{ github.repository }}"
-                .github_event_name = "${{ github.event_name }}"
-                .github_event_path = "${{ github.event_path }}"
-                .github_run_id = "${{ github.run_id }}"
-                .github_run_number = "${{ github.run_number }}"
-                .github_run_attempt = "${{ github.run_attempt }}"
-                .github_workflow_ref = "${{ github.workflow_ref }}"
+                .tags.github_job = "${{ github.job }}"
+                .tags.github_repository = "${{ github.repository }}"
+                .tags.github_event_name = "${{ github.event_name }}"
+                .tags.github_event_path = "${{ github.event_path }}"
+                .tags.github_run_id = "${{ github.run_id }}"
+                .tags.github_run_number = "${{ github.run_number }}"
+                .tags.github_run_attempt = "${{ github.run_attempt }}"
+                .tags.github_workflow_ref = "${{ github.workflow_ref }}"
           sinks:
             # https://openobserve.ai/docs/ingestion/logs/vector/
             openobserve-logs:
@@ -107,11 +107,19 @@ runs:
               endpoints: [ "https://placeholder/metrics/cadvisor" ]
               tls:
                 verify_certificate: false
-
           transforms:
             cadvisor_with_ghactions_metadata:
               type: remap
-
+              inputs: [ "cadvisor" ]
+              source: |
+                .tags.github_job = "${{ github.job }}"
+                .tags.github_repository = "${{ github.repository }}"
+                .tags.github_event_name = "${{ github.event_name }}"
+                .tags.github_event_path = "${{ github.event_path }}"
+                .tags.github_run_id = "${{ github.run_id }}"
+                .tags.github_run_number = "${{ github.run_number }}"
+                .tags.github_run_attempt = "${{ github.run_attempt }}"
+                .tags.github_workflow_ref = "${{ github.workflow_ref }}"
           sinks:
             openobserve-metrics:
               type: prometheus_remote_write
