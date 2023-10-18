@@ -10,19 +10,29 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Start Kubernetes
-        run: kind create cluster
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Use Vector to upload Kubernetes logs to OpenObserve
+      - name: Create example KinD config
+        run: |
+          cat > kind-cluster.yml << EOF
+          apiVersion: kind.x-k8s.io/v1alpha4
+          kind: Cluster
+          nodes:
+          - role: control-plane
+          - role: worker
+          - role: worker
+          - role: worker
+          EOF
+      - name: Set up Kubernetes with OpenObserve
         uses: ./
         with:
-          openobserve_endpoint: ${{ secrets.OPENOBSERVE_URL }}/api/default/
-          openobserve_username: ${{ secrets.OPENOBSERVE_USERNAME }}
-          openobserve_password: ${{ secrets.OPENOBSERVE_PASSWORD }}
-          openobserve_stream: k8s2openobserve-action
-          namespace: monitoring
-          wait_until_ready: true
+          openobserve_endpoint: ${{ secrets.OPENOBSERVE_URL }}/api/default/  # required
+          openobserve_username: ${{ secrets.OPENOBSERVE_USERNAME }}          # required
+          openobserve_password: ${{ secrets.OPENOBSERVE_PASSWORD }}          # required
+          openobserve_stream: kind-openobserve-action  # optional
+          kind_config: ./kind-cluster.yml              # optional
+          namespace: monitoring                        # optional
+          wait_until_ready: true                       # optional
       - name: Create example pod
         run: |
           kubectl apply -f - << EOF
@@ -57,10 +67,3 @@ jobs:
             echo ">>>> $pod <<<<"
             kubectl logs -n monitoring $pod
           done
-      - name: Shut down vector
-        run: |
-          helm uninstall -n monitoring vector-agent
-          helm uninstall -n monitoring vector-aggregator
-          kubectl delete namespace monitoring
-      - name: Delete cluster
-        run: kind delete cluster
