@@ -3,7 +3,7 @@ const github = require('@actions/github');
 const { execFileSync } = require('child_process');
 
 const kindConfigFile = core.getInput('kind_config');
-const openobserveEndpointRaw = core.getInput('openobserve_input');
+const openobserveEndpointRaw = core.getInput('openobserve_endpoint');
 const openobserveUsername = core.getInput('openobserve_username');
 const openobservePassword = core.getInput('openobserve_password');
 const openobserveStream = core.getInput('openobserve_stream') || github.context.repo.repo;
