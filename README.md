@@ -10,3 +10,8 @@ Kubernetes logs and metrics can be shipped to [OpenObserve](https://openobserve.
 
 To see an example, look at the self-test in
 [.github/workflows/test.yml](.github/workflows/test.yml).
+
+
+## Screenshot
+
+![image](https://github.com/FNNDSC/kind-openobserve-action/assets/20404439/2449b59a-8aad-42ba-83ac-ff4fedf1b3cc)
