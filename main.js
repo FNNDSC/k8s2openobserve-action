@@ -34,7 +34,7 @@ customConfig:
         .github.job = "${github.context.job}"
         .github.owner = "${github.context.repo.owner}"
         .github.repo = "${github.context.repo.repo}"
-        .github.event_name = "${github.context.eventName}}"
+        .github.event_name = "${github.context.eventName}"
         .github.run_id = ${github.context.runId}
         .github.run_number = ${github.context.runNumber}
         .github.workflow = "${github.context.workflow}"
@@ -86,7 +86,7 @@ customConfig:
         .tags.github_job = "${github.context.job}"
         .tags.github_owner = "${github.context.repo.owner}"
         .tags.github_repo = "${github.context.repo.repo}"
-        .tags.github_event_name = "${github.context.eventName}}"
+        .tags.github_event_name = "${github.context.eventName}"
         .tags.github_run_id = ${github.context.runId}
         .tags.github_run_number = ${github.context.runNumber}
         .tags.github_workflow = "${github.context.workflow}"
