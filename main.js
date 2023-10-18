@@ -135,8 +135,12 @@ core.debug('------------------------------ VALUES ------------------------------
 // ----------------------------------------------------------------------------------------------------
 
 
+const BOLD_GREEN = '\x1B[1;32m';
+const RESET = '\x1B[0m';
+
+
 function exec(cmd, args, stdin) {
-  core.debug(`$ ${cmd} ${args.join(' ')}`);
+  console.log(`${BOLD_GREEN}$ ${cmd} ${args.join(' ')}${RESET}`);
   if (stdin) {
     execFileSync(cmd, args, { input: stdin, stdio: ['pipe', 'inherit', 'inherit'] });
   }
