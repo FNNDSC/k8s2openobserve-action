@@ -14,4 +14,4 @@ To see an example, look at the self-test in
 
 ## Screenshot
 
-![image](https://github.com/FNNDSC/kind-openobserve-action/assets/20404439/2449b59a-8aad-42ba-83ac-ff4fedf1b3cc)
+![Screenshot of OpenObserve](https://github.com/FNNDSC/kind-openobserve-action/assets/20404439/46a90a10-6f0e-4920-908f-91c655db450b)
