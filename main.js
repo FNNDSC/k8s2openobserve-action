@@ -30,7 +30,16 @@ customConfig:
       type: remap
       inputs: [ "kubernetes_logs" ]
       source: |
-        .github = ${JSON.stringify(github.context)}
+        .github = {}
+        .github.job = "${github.context.job}"
+        .github.owner = "${github.context.repo.owner}"
+        .github.repo = "${github.context.repo.repo}"
+        .github.event_name = "${github.context.eventName}}"
+        .github.run_id = ${github.context.runId}
+        .github.run_number = ${github.context.runNumber}
+        .github.workflow = "${github.context.workflow}"
+        .github.sha = "${github.context.sha}"
+        .github.ref = "${github.context.ref}"
   sinks:
     # https://openobserve.ai/docs/ingestion/logs/vector/
     openobserve-logs:
