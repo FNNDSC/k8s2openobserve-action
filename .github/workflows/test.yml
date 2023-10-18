@@ -52,10 +52,13 @@ jobs:
               - |
                 echo "counting to 10"
                 seq 10
-                echo "taking a break..."
-                sleep 1
+                echo "taking a quick break..."
+                sleep 5
                 echo "counting down from 5 by 2"
                 seq 5 -2 1
+                echo "going to sleep again..."
+                sleep 5
+                echo "done"
           EOF
       - name: Wait for pod to finish
         run: kubectl wait --for=condition=ready --timeout=300s pod/example-pod
