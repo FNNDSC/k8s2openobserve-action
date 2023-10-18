@@ -33,6 +33,7 @@ jobs:
           kind_config: ./kind-cluster.yml              # optional
           namespace: monitoring                        # optional
           wait_until_ready: true                       # optional
+          scrape_interval_secs: 1                      # optional
       - name: Create example pod
         run: |
           kubectl apply -f - << EOF

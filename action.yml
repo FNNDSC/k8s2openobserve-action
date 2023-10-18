@@ -27,6 +27,10 @@ inputs:
     description: 'Wait until Vector is ready'
     required: false
     default: ''
+  scrape_interval_secs:
+    description: 'Interval between scrapes of /metrics/cadvisor'
+    required: false
+    default: ''
 
 branding:
   color: "orange"

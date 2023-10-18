@@ -9,8 +9,10 @@ const openobservePassword = core.getInput('openobserve_password');
 const openobserveStream = core.getInput('openobserve_stream') || github.context.repo.repo;
 const namespace = core.getInput('namespace');
 const waitUntilReady = core.getInput('wait_until_ready') || false;
+const scrapeIntervalSecs = core.getInput('scrape_interval_secs');
 
 const openobserveEndpoint = openobserveEndpointRaw.endsWith('/') ? openobserveEndpointRaw : openobserveEndpointRaw + '/';
+const scrapeConfig = scrapeIntervalSecs ? `scrape_interval_secs: ${scrapeIntervalSecs}` : '';
 
 const vectorAgentValues = `
 role: "Agent"
@@ -80,6 +82,7 @@ customConfig:
       endpoints: [ "https://placeholder/metrics/cadvisor" ]
       tls:
         verify_certificate: false
+      ${scrapeConfig}
   transforms:
     cadvisor_with_ghactions_metadata:
       type: remap
