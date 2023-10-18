@@ -87,8 +87,8 @@ customConfig:
         .tags.github_owner = "${github.context.repo.owner}"
         .tags.github_repo = "${github.context.repo.repo}"
         .tags.github_event_name = "${github.context.eventName}"
-        .tags.github_run_id = ${github.context.runId}
-        .tags.github_run_number = ${github.context.runNumber}
+        .tags.github_run_id = "${github.context.runId}"
+        .tags.github_run_number = "${github.context.runNumber}"
         .tags.github_workflow = "${github.context.workflow}"
         .tags.github_sha = "${github.context.sha}"
         .tags.github_ref = "${github.context.ref}"
