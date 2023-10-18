@@ -57,6 +57,8 @@ customConfig:
         timestamp_format: rfc3339
       healthcheck:
         enabled: false
+      batch:
+        timeout_secs: 1
 `;
 
 const vectorAggregatorValues = `

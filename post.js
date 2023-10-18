@@ -17,7 +17,8 @@ function exec(cmd, args, stdin) {
   }
 }
 
-// perform clean shutdown to ensure that data are flushed to OpenObserve
+// sleep before clean shutdown to ensure that data are flushed to OpenObserve
+exec('sleep', ['10']);
 exec('helm', ['uninstall', '-n', namespace, 'vector-agent']);
 exec('helm', ['uninstall', '-n', namespace, 'vector-aggregator']);
 exec('kubectl', ['delete', 'namespace', namespace]);
